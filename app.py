@@ -29,6 +29,7 @@ menus = [
     {"name":"마라샹궈","country":"중식","type":"고기","taste":"매운맛"},
     {"name":"볶음밥","country":"중식","type":"밥","taste":"담백한맛"},
     {"name":"탕수육","country":"중식","type":"고기","taste":"담백한맛"},
+    {"name":"어향가지","country":"중식","type":"샐러드","taste":"담백한맛"},
 
     {"name":"라멘","country":"일식","type":"면","taste":"국물"},
     {"name":"우동","country":"일식","type":"면","taste":"국물"},
@@ -42,10 +43,10 @@ menus = [
     {"name":"샌드위치","country":"양식","type":"빵","taste":"가벼운맛"},
     {"name":"스테이크","country":"양식","type":"고기","taste":"담백한맛"},
 
-    {"name":"떡볶이","country":"분식","type":"분식","taste":"매운맛"},
-    {"name":"김밥","country":"분식","type":"분식","taste":"담백한맛"},
-    {"name":"순대","country":"분식","type":"분식","taste":"담백한맛"},
-    {"name":"라볶이","country":"분식","type":"분식","taste":"매운맛"},
+    {"name":"떡볶이","country":"분식","type":"떡","taste":"매운맛"},
+    {"name":"김밥","country":"분식","type":"밥","taste":"담백한맛"},
+    {"name":"순대","country":"분식","type":"고기","taste":"담백한맛"},
+    {"name":"라볶이","country":"분식","type":"면","taste":"매운맛"},
 
     {"name":"치킨","country":"야식","type":"고기","taste":"야식"},
     {"name":"족발","country":"야식","type":"고기","taste":"야식"},
@@ -57,6 +58,7 @@ menus = [
     {"name":"그릭요거트","country":"기타","type":"디저트","taste":"다이어트"},
     {"name":"빙수","country":"기타","type":"디저트","taste":"달달한맛"},
     {"name":"케이크","country":"기타","type":"디저트","taste":"달달한맛"},
+    {"name":"요아정","country":"기타","type":"디저트","taste":"달달한맛"}
 ]
 
 # ----------------------------
@@ -76,7 +78,7 @@ country = st.selectbox(
 
 food_type = st.selectbox(
     "🍽️ 음식 종류",
-    ["상관없음","밥","면","빵","고기","국물","분식","샐러드","디저트"]
+    ["상관없음","밥","면","빵","고기","국물","샐러드","디저트"]
 )
 
 taste = st.selectbox(
