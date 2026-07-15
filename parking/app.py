@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import folium
@@ -5,155 +6,243 @@ from streamlit_folium import st_folium
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 
-st.set_page_config(page_title="공영주차장 안내", layout="wide")
+st.set_page_config(
+    page_title="서울시 공영주차장 검색",
+    layout="wide"
+)
 
-st.title("🚗 공영주차장 요금 안내 시스템")
+st.title("🚗 서울시 공영주차장 안내 서비스")
 
 uploaded_file = st.file_uploader(
-    "공공데이터 CSV 업로드",
+    "서울시 공영주차장 CSV 업로드",
     type=["csv"]
 )
 
-if uploaded_file is not None:
+if uploaded_file:
 
-    # 여러 인코딩으로 읽기
-    encodings = ["utf-8", "utf-8-sig", "cp949", "euc-kr"]
+    # CSV 읽기
+    encodings = ["cp949", "euc-kr", "utf-8", "utf-8-sig"]
 
     df = None
 
     for enc in encodings:
         try:
             uploaded_file.seek(0)
-            df = pd.read_csv(
-                uploaded_file,
-                encoding=enc,
-                sep=None,
-                engine="python"
-            )
-            st.success(f"파일을 성공적으로 읽었습니다. ({enc})")
+            df = pd.read_csv(uploaded_file, encoding=enc)
+            st.success(f"파일 로드 성공 ({enc})")
             break
-        except Exception:
+        except:
             continue
 
     if df is None:
-        st.error("CSV 파일을 읽을 수 없습니다.")
+        st.error("파일을 읽을 수 없습니다.")
         st.stop()
 
-    st.subheader("업로드된 데이터")
-    st.dataframe(df)
+    # 위도/경도 없는 데이터 제거
+    df = df.dropna(subset=["위도", "경도"])
 
-    # 컬럼 존재 여부 확인
-    required_columns = [
-        "주차장명",
-        "주소",
-        "위도",
-        "경도",
-        "기본요금",
-        "추가요금"
+    # 숫자형 변환
+    for col in [
+        "기본 주차 요금",
+        "월 정기권 금액",
+        "일 최대 요금"
+    ]:
+        df[col] = pd.to_numeric(
+            df[col],
+            errors="coerce"
+        )
+
+    st.sidebar.header("검색 조건")
+
+    # 주소 검색
+    address_keyword = st.sidebar.text_input(
+        "구/동 검색",
+        placeholder="예: 성동구"
+    )
+
+    # 요금 검색
+    min_fee = st.sidebar.number_input(
+        "최소 기본요금",
+        min_value=0,
+        value=0,
+        step=100
+    )
+
+    max_fee = st.sidebar.number_input(
+        "최대 기본요금",
+        min_value=0,
+        value=10000,
+        step=100
+    )
+
+    # 주차장 종류
+    parking_type = st.sidebar.selectbox(
+        "주차장 종류",
+        ["전체"] + sorted(
+            df["주차장 종류명"].dropna().unique().tolist()
+        )
+    )
+
+    # 유무료
+    fee_type = st.sidebar.selectbox(
+        "유무료",
+        ["전체"] + sorted(
+            df["유무료구분명"].dropna().unique().tolist()
+        )
+    )
+
+    filtered_df = df.copy()
+
+    # 주소 필터
+    if address_keyword:
+        filtered_df = filtered_df[
+            filtered_df["주소"]
+            .astype(str)
+            .str.contains(address_keyword,
+                          case=False,
+                          na=False)
+        ]
+
+    # 요금 필터
+    filtered_df = filtered_df[
+        (filtered_df["기본 주차 요금"] >= min_fee)
+        &
+        (filtered_df["기본 주차 요금"] <= max_fee)
     ]
 
-    for col in required_columns:
-        if col not in df.columns:
-            st.error(f"'{col}' 컬럼이 없습니다.")
-            st.write("현재 컬럼명")
-            st.write(df.columns.tolist())
-            st.stop()
+    # 종류 필터
+    if parking_type != "전체":
+        filtered_df = filtered_df[
+            filtered_df["주차장 종류명"] == parking_type
+        ]
 
-    ###################################
-    # 주소 검색
-    ###################################
+    # 유무료 필터
+    if fee_type != "전체":
+        filtered_df = filtered_df[
+            filtered_df["유무료구분명"] == fee_type
+        ]
 
-    st.subheader("주소 검색")
+    st.subheader(
+        f"검색 결과 ({len(filtered_df)}개)"
+    )
 
-    address = st.text_input("주소를 입력하세요.")
+    st.dataframe(
+        filtered_df[
+            [
+                "주차장명",
+                "주소",
+                "기본 주차 요금",
+                "월 정기권 금액",
+                "일 최대 요금",
+                "주차장 종류명"
+            ]
+        ]
+    )
 
-    if st.button("검색"):
+    #################################
+    # 주소 기반 가장 가까운 주차장
+    #################################
 
-        geolocator = Nominatim(user_agent="parking_app")
+    st.subheader("📍 주소 기준 가장 가까운 주차장")
 
-        location = geolocator.geocode(address)
+    user_address = st.text_input(
+        "주소 입력",
+        placeholder="서울특별시 성동구 왕십리로"
+    )
 
-        if location is None:
-            st.error("주소를 찾을 수 없습니다.")
+    if st.button("가까운 주차장 찾기"):
 
-        else:
+        geolocator = Nominatim(
+            user_agent="parking_app"
+        )
 
-            user_location = (
+        location = geolocator.geocode(user_address)
+
+        if location:
+
+            user_loc = (
                 location.latitude,
                 location.longitude
             )
 
-            distances = []
+            filtered_df["거리"] = filtered_df.apply(
+                lambda row: geodesic(
+                    user_loc,
+                    (row["위도"], row["경도"])
+                ).km,
+                axis=1
+            )
 
-            for _, row in df.iterrows():
+            nearest = filtered_df.loc[
+                filtered_df["거리"].idxmin()
+            ]
 
-                parking_location = (
-                    float(row["위도"]),
-                    float(row["경도"])
-                )
+            st.success("가장 가까운 주차장")
 
-                distance = geodesic(
-                    user_location,
-                    parking_location
-                ).km
+            st.write(
+                f"주차장명 : {nearest['주차장명']}"
+            )
+            st.write(
+                f"주소 : {nearest['주소']}"
+            )
+            st.write(
+                f"기본요금 : {nearest['기본 주차 요금']}원"
+            )
+            st.write(
+                f"거리 : {nearest['거리']:.2f} km"
+            )
 
-                distances.append(distance)
-
-            df["거리"] = distances
-
-            nearest = df.loc[df["거리"].idxmin()]
-
-            st.success("가장 가까운 공영주차장")
-
-            st.write("### 🚗 주차장 정보")
-            st.write(f"주차장명 : {nearest['주차장명']}")
-            st.write(f"주소 : {nearest['주소']}")
-            st.write(f"기본요금 : {nearest['기본요금']}원")
-            st.write(f"추가요금 : {nearest['추가요금']}원")
-            st.write(f"거리 : {nearest['거리']:.2f} km")
-
-    ###################################
+    #################################
     # 지도
-    ###################################
+    #################################
 
-    st.subheader("공영주차장 지도")
+    st.subheader("🗺️ 주차장 지도")
 
-    center = [
-        df["위도"].astype(float).mean(),
-        df["경도"].astype(float).mean()
-    ]
+    if len(filtered_df) > 0:
 
-    m = folium.Map(
-        location=center,
-        zoom_start=12
-    )
+        center = [
+            filtered_df["위도"].mean(),
+            filtered_df["경도"].mean()
+        ]
 
-    for _, row in df.iterrows():
+        m = folium.Map(
+            location=center,
+            zoom_start=12
+        )
 
-        popup = f"""
-        <b>{row['주차장명']}</b><br>
-        주소 : {row['주소']}<br>
-        기본요금 : {row['기본요금']}원<br>
-        추가요금 : {row['추가요금']}원
-        """
+        for _, row in filtered_df.iterrows():
 
-        tooltip = f"""
-        {row['주소']}<br>
-        기본요금 : {row['기본요금']}원
-        """
+            popup = f"""
+            <b>{row['주차장명']}</b><br>
+            주소 : {row['주소']}<br>
+            기본요금 : {row['기본 주차 요금']}원<br>
+            일 최대요금 : {row['일 최대 요금']}원<br>
+            종류 : {row['주차장 종류명']}
+            """
 
-        folium.Marker(
-            location=[
-                float(row["위도"]),
-                float(row["경도"])
-            ],
-            popup=popup,
-            tooltip=tooltip,
-            icon=folium.Icon(color="blue")
-        ).add_to(m)
+            tooltip = f"""
+            {row['주소']}
+            <br>
+            {row['기본 주차 요금']}원
+            """
 
-    st_folium(
-        m,
-        width=1000,
-        height=600
-    )
+            folium.Marker(
+                location=[
+                    row["위도"],
+                    row["경도"]
+                ],
+                popup=popup,
+                tooltip=tooltip
+            ).add_to(m)
+
+        st_folium(
+            m,
+            width=1200,
+            height=700
+        )
+
+    else:
+        st.warning(
+            "검색 조건에 해당하는 주차장이 없습니다."
+        )
+```
