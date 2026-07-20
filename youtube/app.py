@@ -31,7 +31,7 @@ st.markdown("유튜브 영상의 댓글을 수집하고 분석합니다.")
 # -----------------------------
 
 api_key = st.text_input(
-    "YouTube Data API Key",
+    "AIzaSyDjVDpNMP-FsJV6uWUcms8kJ3adAiypAyo",
     type="password"
 )
 
