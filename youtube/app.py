@@ -295,46 +295,74 @@ if st.button("🚀 분석 시작"):
 
     st.subheader("☁️ 댓글 워드클라우드")
 
-    all_text = " ".join(
-        df["댓글"].astype(str)
-    )
-
-    words = re.findall(
-        r"[가-힣]{2,}",
-        all_text
-    )
-
-    stopwords = {
-        "진짜","정말","영상","이번",
-        "댓글","유튜브","그냥",
-        "너무","오늘","사람",
-        "채널","생각","때문"
-    }
-
-    words = [
-        w for w in words
-        if w not in stopwords
-    ]
-
-    text_for_cloud = " ".join(words)
-
-    if text_for_cloud:
-
-        wordcloud = WordCloud(
-            width=1200,
-            height=600,
-            background_color="white"
-        ).generate(text_for_cloud)
-
-        fig3, ax = plt.subplots(
-            figsize=(12,6)
+        all_text = " ".join(
+            df["댓글"].astype(str)
         )
-
-        ax.imshow(wordcloud)
-        ax.axis("off")
-
-        st.pyplot(fig3)
-
+        
+        words = re.findall(
+            r"[가-힣]{2,}",
+            all_text
+        )
+        
+        stopwords = {
+            "진짜","정말","영상","이번","댓글",
+            "유튜브","그냥","너무","오늘","사람",
+            "채널","생각","때문","근데","이거",
+            "저거","에서","까지","하고","대한",
+            "있는","합니다","입니다","같은",
+            "그리고","하지만","그래서","정도",
+            "있는것","있네요","있습니다"
+        }
+        
+        filtered = []
+        
+        for word in words:
+        
+            if word in stopwords:
+                continue
+        
+            if len(word) < 2:
+                continue
+        
+            filtered.append(word)
+        
+        text_for_cloud = " ".join(filtered)
+        
+        if text_for_cloud:
+        
+            wordcloud = WordCloud(
+                font_path="NanumGothic.ttf",
+                width=1600,
+                height=900,
+                background_color="white",
+                max_words=200
+            ).generate(text_for_cloud)
+        
+            fig, ax = plt.subplots(
+                figsize=(15,8)
+            )
+        
+            ax.imshow(wordcloud)
+        
+            ax.axis("off")
+        
+            st.pyplot(fig)
+        
+        from collections import Counter
+        
+        counter = Counter(filtered)
+        
+        top_words = pd.DataFrame(
+            counter.most_common(20),
+            columns=["키워드", "횟수"]
+        )
+        
+        st.subheader("🔥 댓글 키워드 TOP 20")
+        
+        st.dataframe(
+            top_words,
+            use_container_width=True
+)
     # -----------------------------
     # 전체 댓글
     # -----------------------------
