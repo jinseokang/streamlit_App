@@ -2,9 +2,7 @@ streamlit
 pandas
 numpy
 google-api-python-client
-matplotlib
 plotly
+matplotlib
 wordcloud
-konlpy
-scikit-learn
 textblob
