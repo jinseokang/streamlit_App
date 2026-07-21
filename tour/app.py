@@ -119,45 +119,45 @@ if st.session_state.recommended_festival:
 
 st.subheader("🗺️ 전국 축제 지도")
 
-m = folium.Map(
-    location=[36.35, 127.75],
-    zoom_start=7,
-    control_scale=True
-)
-
-for _, row in df.iterrows():
-
-    mapx = row.get("mapx")
-    mapy = row.get("mapy")
-
-    if not mapx or not mapy:
-        continue
-
-    try:
-
-        lat = float(mapy)
-        lon = float(mapx)
-
-        popup_text = f"""
-        <b>{row.get('title','')}</b><br>
-        {row.get('addr1','')}
-        """
-
-        folium.Marker(
-            [lat, lon],
-            popup=popup_text,
-            tooltip=row.get("title","")
-        ).add_to(m)
-
-    except Exception:
-        continue
-
-st_folium(
-    m,
-    key="festival_map",
-    use_container_width=True,
-    height=650
-)
+    m = folium.Map(
+        location=[36.35, 127.75],
+        zoom_start=7,
+        control_scale=True
+    )
+    
+    for _, row in df.iterrows():
+    
+        mapx = row.get("mapx")
+        mapy = row.get("mapy")
+    
+        if not mapx or not mapy:
+            continue
+    
+        try:
+    
+            lat = float(mapy)
+            lon = float(mapx)
+    
+            popup_text = f"""
+            <b>{row.get('title','')}</b><br>
+            {row.get('addr1','')}
+            """
+    
+            folium.Marker(
+                [lat, lon],
+                popup=popup_text,
+                tooltip=row.get("title","")
+            ).add_to(m)
+    
+        except Exception:
+            continue
+    
+    st_folium(
+        m,
+        key="festival_map",
+        use_container_width=True,
+        height=650
+    )
 st.subheader("🎪 축제 목록")
 
 for _, row in df.iterrows():
